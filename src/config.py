@@ -1,14 +1,22 @@
 """Centralized configuration."""
 
-from pydantic_settings import BaseSettings
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    openai_api_key: str = ""
-    qdrant_url: str = "http://localhost:6333"
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
-    class Config:
-        env_file = ".env"
+    openai_api_key: str = Field(..., min_length=1, description="OpenAI API key")
+    qdrant_url: str = Field(
+        default="http://localhost:6333", description="Qdrant server URL"
+    )
+    openai_model: str = Field(
+        default="gpt-4o", description="OpenAI model for text generation"
+    )
+    output_dir: str = Field(
+        default="./output", description="Directory for generated video assets"
+    )
 
 
 settings = Settings()

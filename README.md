@@ -36,9 +36,14 @@ sudo apt install ffmpeg
 ```
 
 ## Quick Start
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
+cp .env.example .env   # edit .env and fill in your OpenAI API key
+
+uvicorn src.main:app --reload
 ```
+
+API docs at http://localhost:8000/docs
