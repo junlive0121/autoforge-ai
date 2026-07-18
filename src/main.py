@@ -1,5 +1,6 @@
 """AutoForge AI — Entry point."""
 
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -8,6 +9,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.routes import router
 from src.config import settings
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+    datefmt="%H:%M:%S",
+)
 
 
 @asynccontextmanager

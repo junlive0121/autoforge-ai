@@ -1,9 +1,12 @@
 """Director Agent — Plans and delegates video production tasks."""
 
-import json
+import logging
 
 from src.openai_client import client
 from src.config import settings
+from src.utils import parse_llm_json, retry
+
+logger = logging.getLogger("autoforge.director")
 
 SYSTEM_PROMPT = """You are the Director Agent of an AI video production pipeline.
 Given a raw story idea, produce a JSON production plan with these fields:
@@ -20,7 +23,9 @@ Return ONLY valid JSON, no markdown fences."""
 class DirectorAgent:
     """Decomposes a story idea into a structured production plan."""
 
+    @retry()
     async def plan(self, idea: str) -> dict:
+        logger.info("Director: planning from idea (%d chars)", len(idea))
         response = await client.chat.completions.create(
             model=settings.openai_model,
             messages=[
@@ -29,4 +34,6 @@ class DirectorAgent:
             ],
             temperature=0.7,
         )
-        return json.loads(response.choices[0].message.content)
+        plan = parse_llm_json(response.choices[0].message.content)
+        logger.info("Director: plan complete — %s", plan.get("title", "untitled"))
+        return plan
