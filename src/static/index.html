@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoForge AI</title>
+<style>
+  :root { --bg: #0a0a0f; --card: #12121a; --border: #1e1e2e; --accent: #6c5ce7; --accent2: #00cec9; --text: #e2e2e2; --dim: #6b7280; --success: #00b894; --error: #ff6b6b; --warn: #fdcb6e; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .container { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+  h1 { font-size: 2.2rem; font-weight: 700; margin-bottom: 8px; }
+  h1 span { color: var(--accent); }
+  .subtitle { color: var(--dim); font-size: 0.95rem; margin-bottom: 40px; }
+  .badge { display: inline-block; background: var(--accent); color: #fff; font-size: 0.7rem; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-left: 8px; vertical-align: middle; letter-spacing: 0.5px; }
+
+  /* Input */
+  .input-section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 32px; }
+  .input-section label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; }
+  textarea { width: 100%; min-height: 100px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; color: var(--text); font-size: 0.95rem; resize: vertical; font-family: inherit; }
+  textarea:focus { outline: none; border-color: var(--accent); }
+  .btn { background: var(--accent); color: #fff; border: none; padding: 12px 32px; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-top: 16px; transition: all 0.2s; }
+  .btn:hover { filter: brightness(1.1); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .examples { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .examples button { background: var(--bg); border: 1px solid var(--border); color: var(--dim); padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+  .examples button:hover { border-color: var(--accent); color: var(--text); }
+
+  /* Pipeline */
+  .pipeline { display: none; }
+  .pipeline.active { display: block; }
+  .stages { display: flex; gap: 6px; margin-bottom: 32px; flex-wrap: wrap; }
+  .stage { flex: 1; min-width: 120px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 12px; text-align: center; transition: all 0.3s; }
+  .stage.active { border-color: var(--accent); box-shadow: 0 0 20px rgba(108, 92, 231, 0.15); }
+  .stage.done { border-color: var(--success); }
+  .stage.error { border-color: var(--error); }
+  .stage-icon { font-size: 1.5rem; margin-bottom: 6px; }
+  .stage-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stage-status { font-size: 0.7rem; color: var(--dim); margin-top: 4px; }
+
+  /* Log */
+  .log-box { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 24px; max-height: 200px; overflow-y: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.8rem; line-height: 1.6; }
+  .log-line { color: var(--dim); }
+  .log-line.info { color: var(--accent2); }
+  .log-line.error { color: var(--error); }
+  .log-line.success { color: var(--success); }
+
+  /* Content panels */
+  .panel { display: none; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; animation: fadeIn 0.3s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .panel-title { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; color: var(--accent); }
+  .panel pre { background: var(--bg); border-radius: 6px; padding: 14px; overflow-x: auto; font-size: 0.82rem; line-height: 1.5; color: var(--dim); }
+
+  /* Image gallery */
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+  .gallery img { width: 100%; border-radius: 8px; border: 1px solid var(--border); aspect-ratio: 16/9; object-fit: cover; }
+
+  /* Video player */
+  .video-section { text-align: center; margin-top: 32px; }
+  .video-section video { max-width: 100%; border-radius: 12px; border: 2px solid var(--accent); }
+
+  /* Spinner */
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 6px; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg { background: rgba(255,107,107,0.1); border: 1px solid var(--error); border-radius: 8px; padding: 14px; color: var(--error); font-size: 0.9rem; margin-top: 16px; display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Auto<span>Forge</span> AI <span class="badge">HACKATHON</span></h1>
+  <p class="subtitle">Transform a story idea into a complete video — powered by multi-agent AI collaboration</p>
+
+  <div class="input-section">
+    <label for="idea">Your Story Idea</label>
+    <textarea id="idea" placeholder="e.g. A curious robot discovers emotions in a post-apocalyptic world, learning what it means to feel through small interactions with nature..."></textarea>
+    <div class="examples">
+      <button onclick="fill('A lonely lighthouse keeper discovers a message in a bottle from another dimension')">Dimension Bottle</button>
+      <button onclick="fill('Two rival chefs must cooperate to save their town from a giant food monster')">Food Monster</button>
+      <button onclick="fill('A cat who can travel through time but only backwards by one minute each day')">Time Cat</button>
+    </div>
+    <button class="btn" id="runBtn" onclick="startPipeline()">Generate Video</button>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <div class="pipeline" id="pipeline">
+    <div class="stages">
+      <div class="stage" id="stage-director"><div class="stage-icon">🎬</div><div class="stage-label">Director</div><div class="stage-status" id="status-director">Waiting</div></div>
+      <div class="stage" id="stage-writer"><div class="stage-icon">✍️</div><div class="stage-label">Writer</div><div class="stage-status" id="status-writer">Waiting</div></div>
+      <div class="stage" id="stage-storyboard"><div class="stage-icon">🎨</div><div class="stage-label">Storyboard</div><div class="stage-status" id="status-storyboard">Waiting</div></div>
+      <div class="stage" id="stage-media"><div class="stage-icon">🖼️</div><div class="stage-label">Media</div><div class="stage-status" id="status-media">Waiting</div></div>
+      <div class="stage" id="stage-assembly"><div class="stage-icon">🎞️</div><div class="stage-label">Assembly</div><div class="stage-status" id="status-assembly">Waiting</div></div>
+    </div>
+
+    <div class="log-box" id="logBox"></div>
+
+    <div class="panel" id="panel-plan"><div class="panel-title">Production Plan</div><pre id="planContent"></pre></div>
+    <div class="panel" id="panel-script"><div class="panel-title">Script</div><pre id="scriptContent"></pre></div>
+    <div class="panel" id="panel-storyboard"><div class="panel-title">Storyboard</div><pre id="storyboardContent"></pre></div>
+    <div class="panel" id="panel-gallery"><div class="panel-title">Generated Assets</div><div class="gallery" id="gallery"></div></div>
+
+    <div class="video-section" id="videoSection" style="display:none">
+      <h2 style="margin-bottom:16px; font-size:1.3rem;">Final Video</h2>
+      <video id="finalVideo" controls></video>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentProjectId = null;
+let ws = null;
+
+function fill(text) { document.getElementById('idea').value = text; }
+
+function log(msg, cls = '') {
+  const box = document.getElementById('logBox');
+  const line = document.createElement('div');
+  line.className = 'log-line ' + cls;
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  box.appendChild(line);
+  box.scrollTop = box.scrollHeight;
+}
+
+function setStage(name, state, text) {
+  const el = document.getElementById('stage-' + name);
+  const status = document.getElementById('status-' + name);
+  el.className = 'stage ' + state;
+  if (text) status.textContent = text;
+}
+
+async function startPipeline() {
+  const idea = document.getElementById('idea').value.trim();
+  if (idea.length < 5) { showError('Please enter at least 5 characters.'); return; }
+
+  hideError();
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('runBtn').innerHTML = '<span class="spinner"></span> Generating...';
+  document.getElementById('pipeline').classList.add('active');
+  document.getElementById('videoSection').style.display = 'none';
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('gallery').innerHTML = '';
+  ['plan', 'script', 'storyboard', 'gallery'].forEach(p => document.getElementById('panel-' + p).classList.remove('active'));
+  ['director', 'writer', 'storyboard', 'media', 'assembly'].forEach(s => setStage(s, '', 'Waiting'));
+
+  log('Submitting project...', 'info');
+
+  try {
+    const resp = await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idea })
+    });
+    if (!resp.ok) throw new Error((await resp.json()).detail || 'Server error');
+    const data = await resp.json();
+    currentProjectId = data.project_id;
+    log(`Project created: ${data.project_id}`, 'success');
+    connectWebSocket(data.project_id);
+  } catch (e) {
+    showError(e.message);
+    log('Error: ' + e.message, 'error');
+    document.getElementById('runBtn').disabled = false;
+    document.getElementById('runBtn').textContent = 'Generate Video';
+  }
+}
+
+function connectWebSocket(projectId) {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${location.host}/ws/${projectId}`);
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    handleProgress(msg);
+  };
+  ws.onerror = () => { log('WebSocket error — falling back to polling', 'error'); startPolling(projectId); };
+  ws.onclose = () => { if (document.getElementById('runBtn').disabled && !document.getElementById('videoSection').style.display !== 'block') startPolling(projectId); };
+}
+
+function startPolling(projectId) {
+  const interval = setInterval(async () => {
+    try {
+      const resp = await fetch(`/api/projects/${projectId}`);
+      const data = await resp.json();
+      if (data.status === 'completed') {
+        clearInterval(interval);
+        handleProgress({ stage: 'done', plan: data.plan, shots: data.shots, video_path: data.video_path });
+      } else if (data.status === 'failed') {
+        clearInterval(interval);
+        showError(data.error || 'Pipeline failed');
+        log('Pipeline failed: ' + (data.error || 'unknown'), 'error');
+        document.getElementById('runBtn').disabled = false;
+        document.getElementById('runBtn').textContent = 'Generate Video';
+      }
+    } catch {}
+  }, 2000);
+}
+
+function handleProgress(msg) {
+  if (msg.stage === 'plan') {
+    setStage('director', 'done', 'Done');
+    log('Director: plan complete', 'success');
+    if (msg.data) { document.getElementById('planContent').textContent = JSON.stringify(msg.data, null, 2); document.getElementById('panel-plan').classList.add('active'); }
+  } else if (msg.stage === 'script') {
+    setStage('writer', 'done', 'Done');
+    log('Writer: script complete', 'success');
+    if (msg.data) { document.getElementById('scriptContent').textContent = JSON.stringify(msg.data, null, 2); document.getElementById('panel-script').classList.add('active'); }
+  } else if (msg.stage === 'storyboard') {
+    setStage('storyboard', 'done', 'Done');
+    log('Storyboard: %d shots planned', 'info');
+    if (msg.data) { document.getElementById('storyboardContent').textContent = JSON.stringify(msg.data, null, 2); document.getElementById('panel-storyboard').classList.add('active'); }
+  } else if (msg.stage === 'media') {
+    setStage('media', 'active', 'Generating...');
+    log('Media: generating assets...', 'info');
+  } else if (msg.stage === 'assembly') {
+    setStage('media', 'done', 'Done');
+    setStage('assembly', 'active', 'Assembling...');
+    log('Assembly: stitching video...', 'info');
+    if (msg.images) { const g = document.getElementById('gallery'); msg.images.forEach(url => { const img = document.createElement('img'); img.src = url; g.appendChild(img); }); document.getElementById('panel-gallery').classList.add('active'); }
+  } else if (msg.stage === 'done') {
+    setStage('assembly', 'done', 'Complete');
+    log('Pipeline complete!', 'success');
+    if (msg.plan) { document.getElementById('planContent').textContent = JSON.stringify(msg.plan, null, 2); document.getElementById('panel-plan').classList.add('active'); }
+    if (msg.shots) {
+      document.getElementById('storyboardContent').textContent = JSON.stringify(msg.shots, null, 2);
+      document.getElementById('panel-storyboard').classList.add('active');
+      const g = document.getElementById('gallery');
+      msg.shots.forEach(s => { if (s.image_path) { const img = document.createElement('img'); img.src = `/api/projects/${currentProjectId}/assets/${s.image_path.split('/').pop()}`; g.appendChild(img); } });
+      document.getElementById('panel-gallery').classList.add('active');
+    }
+    if (msg.video_path) { const v = document.getElementById('finalVideo'); v.src = `/api/projects/${currentProjectId}/video`; document.getElementById('videoSection').style.display = 'block'; v.load(); }
+    document.getElementById('runBtn').disabled = false;
+    document.getElementById('runBtn').textContent = 'Generate Another';
+  } else if (msg.stage === 'error') {
+    showError(msg.message || 'Pipeline failed');
+    log('Error: ' + (msg.message || 'unknown'), 'error');
+    setStage(msg.agent || 'director', 'error', 'Failed');
+    document.getElementById('runBtn').disabled = false;
+    document.getElementById('runBtn').textContent = 'Generate Video';
+  } else if (msg.stage === 'log') {
+    log(msg.message, msg.level || '');
+  } else if (msg.stage === 'director') { setStage('director', 'active', 'Working...'); log('Director: planning...', 'info'); }
+  else if (msg.stage === 'writer') { setStage('director', 'done', 'Done'); setStage('writer', 'active', 'Working...'); log('Writer: drafting script...', 'info'); }
+  else if (msg.stage === 'storyboard_start') { setStage('writer', 'done', 'Done'); setStage('storyboard', 'active', 'Working...'); log('Storyboard: planning shots...', 'info'); }
+}
+
+function showError(msg) { const el = document.getElementById('errorMsg'); el.textContent = msg; el.style.display = 'block'; }
+function hideError() { document.getElementById('errorMsg').style.display = 'none'; }
+</script>
+</body>
+</html>

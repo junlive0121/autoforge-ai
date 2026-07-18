@@ -8,9 +8,6 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     openai_api_key: str = Field(..., min_length=1, description="OpenAI API key")
-    qdrant_url: str = Field(
-        default="http://localhost:6333", description="Qdrant server URL"
-    )
     openai_model: str = Field(
         default="gpt-4o", description="OpenAI model for text generation"
     )

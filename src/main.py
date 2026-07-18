@@ -4,11 +4,13 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from src.api.routes import router
 from src.config import settings
+from src.ws import connect, disconnect
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,13 +42,17 @@ app.add_middleware(
 
 app.include_router(router, prefix="/api")
 
+# WebSocket for real-time pipeline progress
+@app.websocket("/ws/{project_id}")
+async def websocket_endpoint(websocket: WebSocket, project_id: str):
+    await connect(project_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        disconnect(project_id, websocket)
 
-@app.get("/health")
-def health_check() -> dict[str, str]:
-    return {"status": "ok"}
 
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run("src.main:app", host="0.0.0.0", port=8000, reload=True)
+# Serve frontend + static assets
+static_dir = Path(__file__).parent / "static"
+app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")

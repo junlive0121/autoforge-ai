@@ -5,22 +5,30 @@ import logging
 import re
 import asyncio
 from functools import wraps
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable
 
 from openai import APIStatusError, RateLimitError, APITimeoutError
 
 logger = logging.getLogger("autoforge")
 
-T = TypeVar("T")
-
 
 def parse_llm_json(raw: str) -> Any:
     """Safely parse JSON from an LLM response, stripping markdown fences."""
+    if not raw:
+        raise json.JSONDecodeError("Empty LLM response", "", 0)
     text = raw.strip()
-    # Strip ```json ... ``` fences
     text = re.sub(r"^```(?:json)?\s*\n?", "", text)
     text = re.sub(r"\n?```\s*$", "", text)
-    return json.loads(text)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        logger.warning("JSON parse failed, attempting recovery: %s", e.msg)
+        # Try to extract first JSON object or array
+        for pattern in [r"\{.*\}", r"\[.*\]"]:
+            match = re.search(pattern, text, re.DOTALL)
+            if match:
+                return json.loads(match.group())
+        raise
 
 
 def retry(
@@ -43,8 +51,8 @@ def retry(
                         break
                     delay = base_delay * (2 ** (attempt - 1))
                     logger.warning(
-                        "Attempt %d/%d failed (%s), retrying in %.1fs...",
-                        attempt, max_retries, type(e).__name__, delay,
+                        "%s attempt %d/%d failed (%s), retrying in %.1fs...",
+                        func.__qualname__, attempt, max_retries, type(e).__name__, delay,
                     )
                     await asyncio.sleep(delay)
             raise last_exc  # type: ignore[misc]
