@@ -1,14 +1,26 @@
 """AutoForge AI — Entry point."""
 
+from contextlib import asynccontextmanager
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.routes import router
+from src.config import settings
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Path(settings.output_dir).mkdir(parents=True, exist_ok=True)
+    yield
+
 
 app = FastAPI(
     title="AutoForge AI",
     version="0.1.0",
     description="Autonomous AI-powered video production system",
+    lifespan=lifespan,
 )
 
 app.add_middleware(

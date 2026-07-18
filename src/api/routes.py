@@ -3,6 +3,8 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from src.pipeline import run_pipeline
+
 router = APIRouter()
 
 
@@ -13,13 +15,16 @@ class CreateProjectRequest(BaseModel):
 class CreateProjectResponse(BaseModel):
     project_id: str
     status: str
-    message: str
+    video_path: str
+    plan: dict
+    shots: list[dict]
 
 
 @router.post("/projects", response_model=CreateProjectResponse)
 async def create_project(request: CreateProjectRequest) -> CreateProjectResponse:
     """Kick off a new video production pipeline from a story idea."""
-    raise HTTPException(
-        status_code=501,
-        detail="Pipeline not yet implemented. Agent stubs are in place.",
-    )
+    try:
+        result = await run_pipeline(request.idea)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return CreateProjectResponse(**result)
