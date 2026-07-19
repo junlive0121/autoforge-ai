@@ -1,4 +1,4 @@
-# AutoForge AI
+# AutoForge Classroom
 
 > A judge-ready, standalone video production pipeline that transforms one idea
 > into a planned, narrated, illustrated, and validated MP4.

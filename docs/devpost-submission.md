@@ -1,6 +1,7 @@
 # AutoForge Classroom — Devpost Submission Draft
 
-Status: ready for review; replace every `TODO` before final submission.
+Status: Devpost content updated; only the primary `/feedback` Session ID
+remains to be entered.
 
 ## Core fields
 
@@ -170,18 +171,18 @@ For live generation, provide a valid OpenAI API key and click
 
 ## Final eligibility checklist
 
-- [ ] Devpost registration is accepted for the submitting account.
-- [ ] Education track is selected.
-- [ ] Every submission field is in English.
+- [x] Devpost registration is accepted for the submitting account.
+- [x] Education track is selected.
+- [x] Every submission field is in English.
 - [x] Public repository contains an applicable MIT license.
-- [ ] README includes setup, testing, Codex decisions, GPT-5.6, and prior/new work.
-- [ ] Public working demo or reproducible Sample Lesson instructions are present.
-- [ ] Demo video is 3:00 or shorter.
+- [x] README includes setup, testing, Codex decisions, GPT-5.6, and prior/new work.
+- [x] Reproducible Sample Lesson instructions are present.
+- [x] Demo video is 3:00 or shorter.
 - [x] Demo video is uploaded to YouTube as Public.
-- [ ] Video contains English narration.
-- [ ] Video shows the working project.
-- [ ] Video explains specific Codex work and GPT-5.6 integration.
+- [x] Video contains English narration.
+- [x] Video shows the working project.
+- [x] Video explains specific Codex work and GPT-5.6 integration.
 - [ ] Primary `/feedback` Codex Session ID is entered.
-- [ ] Team invitations, if any, are accepted.
-- [ ] Final YouTube link works in a private/incognito window.
-- [ ] Final submission is completed before July 21, 2026 at 5:00 PM PT.
+- [x] No outstanding team invitations remain.
+- [x] Final YouTube link is public and loads successfully.
+- [x] Submission remains in the submitted state.
