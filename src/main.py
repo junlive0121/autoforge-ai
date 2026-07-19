@@ -8,7 +8,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from src.api.routes import router
+from src.api.routes import project_repository, router
 from src.config import settings
 from src.ws import connect, disconnect
 
@@ -22,6 +22,12 @@ logging.basicConfig(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Path(settings.output_dir).mkdir(parents=True, exist_ok=True)
+    interrupted = project_repository.reconcile_interrupted()
+    if interrupted:
+        logging.getLogger("autoforge.api").warning(
+            "Marked %d unfinished project(s) as interrupted",
+            len(interrupted),
+        )
     yield
 
 
@@ -35,7 +41,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -45,6 +51,11 @@ app.include_router(router, prefix="/api")
 # WebSocket for real-time pipeline progress
 @app.websocket("/ws/{project_id}")
 async def websocket_endpoint(websocket: WebSocket, project_id: str):
+    try:
+        project_repository.get(project_id)
+    except (FileNotFoundError, ValueError):
+        await websocket.close(code=1008, reason="Project not found")
+        return
     await connect(project_id, websocket)
     try:
         while True:

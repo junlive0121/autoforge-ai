@@ -37,7 +37,11 @@ Thumbs.db
 
 # Generated output
 output/
+artifacts/
+.serena/
 *.mp4
 *.mp3
+*.aiff
+*.wav
 *.png
 *.jpg

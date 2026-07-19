@@ -20,6 +20,8 @@ def disconnect(project_id: str, ws: WebSocket) -> None:
     conns = _connections.get(project_id, [])
     if ws in conns:
         conns.remove(ws)
+    if not conns:
+        _connections.pop(project_id, None)
     logger.info("[%s] WebSocket disconnected (%d remaining)", project_id, len(conns))
 
 
@@ -33,3 +35,5 @@ async def broadcast(project_id: str, event: dict) -> None:
             dead.append(ws)
     for ws in dead:
         conns.remove(ws)
+    if not conns:
+        _connections.pop(project_id, None)

@@ -1,0 +1,15 @@
+Teachers know what students need to learn, but producing one polished lesson video can take hours. AutoForge Classroom turns a single lesson objective into a planned, narrated, illustrated, and validated classroom video.
+
+I can enter a learning objective and follow the complete workflow. The Director creates an audience-aware teaching plan. The Writer creates the script. The Storyboard Agent creates exact narration and visual instructions. The media and assembly stages then produce the final M P four.
+
+This is deliberately not a black box. A teacher can inspect the learning objective, explanation structure, narration, shot order, and every generated frame. The sample path is deterministic and provider-free for judge testing, while exercising the same persistence, validation, progress, and F F m peg layers as live generation.
+
+The final lesson uses the real narration duration, so speech is not clipped by a model estimate. Before the result is published, AutoForge verifies that the images decode correctly and that the final file contains valid audio and video streams.
+
+G P T five point six Terra is the reasoning layer for the live workflow. It turns an underspecified lesson objective into structured decisions about audience, learning objective, teaching sequence, narration, visual composition, and shot order. Its outputs are validated before expensive media generation begins.
+
+Codex was my main Build Week engineering collaborator. I used it to audit the original prototype, choose the Education focus, define the public code boundary, implement atomic project state and media publication, correct narration timing, surface background failures, and build regression tests. The most important decision was to prioritize a coherent, testable classroom product instead of adding unrelated software as a service infrastructure.
+
+The result is a non-trivial pipeline that treats generated media as data integrity. Invalid storyboards stop early, failed downloads cannot masquerade as images, interrupted jobs remain visible, and F F m peg failure can never be reported as success.
+
+AutoForge Classroom gives educators a faster path from teaching intent to a reviewable classroom asset. A lesson objective in; a validated lesson video out.

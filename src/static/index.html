@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AutoForge AI</title>
+<title>AutoForge Classroom</title>
 <style>
   :root { --bg: #0a0a0f; --card: #12121a; --border: #1e1e2e; --accent: #6c5ce7; --accent2: #00cec9; --text: #e2e2e2; --dim: #6b7280; --success: #00b894; --error: #ff6b6b; --warn: #fdcb6e; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -22,6 +22,7 @@
   .btn { background: var(--accent); color: #fff; border: none; padding: 12px 32px; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-top: 16px; transition: all 0.2s; }
   .btn:hover { filter: brightness(1.1); }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.secondary { background: transparent; border: 1px solid var(--accent2); color: var(--accent2); margin-left: 8px; }
   .examples { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
   .examples button { background: var(--bg); border: 1px solid var(--border); color: var(--dim); padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
   .examples button:hover { border-color: var(--accent); color: var(--text); }
@@ -69,18 +70,19 @@
 </head>
 <body>
 <div class="container">
-  <h1>Auto<span>Forge</span> AI <span class="badge">HACKATHON</span></h1>
-  <p class="subtitle">Transform a story idea into a complete video — powered by multi-agent AI collaboration</p>
+  <h1>Auto<span>Forge</span> Classroom <span class="badge">HACKATHON</span></h1>
+  <p class="subtitle">Turn a lesson objective into a validated, narrated classroom video</p>
 
   <div class="input-section">
-    <label for="idea">Your Story Idea</label>
-    <textarea id="idea" placeholder="e.g. A curious robot discovers emotions in a post-apocalyptic world, learning what it means to feel through small interactions with nature..."></textarea>
+    <label for="idea">Lesson Objective</label>
+    <textarea id="idea" placeholder="e.g. Explain photosynthesis to middle-school students using a clear visual analogy..."></textarea>
     <div class="examples">
-      <button onclick="fill('A lonely lighthouse keeper discovers a message in a bottle from another dimension')">Dimension Bottle</button>
-      <button onclick="fill('Two rival chefs must cooperate to save their town from a giant food monster')">Food Monster</button>
-      <button onclick="fill('A cat who can travel through time but only backwards by one minute each day')">Time Cat</button>
+      <button onclick="fill('Explain photosynthesis to middle-school students using a clear visual analogy')">Photosynthesis</button>
+      <button onclick="fill('Teach fractions with a visual pizza-sharing example for elementary students')">Fractions</button>
+      <button onclick="fill('Explain the water cycle in under one minute for a science class')">Water Cycle</button>
     </div>
-    <button class="btn" id="runBtn" onclick="startPipeline()">Generate Video</button>
+    <button class="btn" id="runBtn" onclick="startPipeline(false)">Generate Lesson</button>
+    <button class="btn secondary" id="demoBtn" onclick="startPipeline(true)">Try Sample Lesson</button>
     <div class="error-msg" id="errorMsg"></div>
   </div>
 
@@ -110,6 +112,8 @@
 <script>
 let currentProjectId = null;
 let ws = null;
+let pollingTimer = null;
+let projectFinished = false;
 
 function fill(text) { document.getElementById('idea').value = text; }
 
@@ -129,13 +133,58 @@ function setStage(name, state, text) {
   if (text) status.textContent = text;
 }
 
-async function startPipeline() {
-  const idea = document.getElementById('idea').value.trim();
+function stopPolling() {
+  if (pollingTimer !== null) {
+    clearInterval(pollingTimer);
+    pollingTimer = null;
+  }
+}
+
+function closeWebSocket(suppressFallback = false) {
+  if (!ws) return;
+  if (suppressFallback) ws.onclose = null;
+  ws.close();
+  ws = null;
+}
+
+function addGalleryImage(url) {
+  if (!url) return;
+  const gallery = document.getElementById('gallery');
+  if (gallery.querySelector(`img[data-url="${CSS.escape(url)}"]`)) return;
+  const image = document.createElement('img');
+  image.src = url;
+  image.dataset.url = url;
+  image.alt = 'Generated storyboard frame';
+  gallery.appendChild(image);
+  document.getElementById('panel-gallery').classList.add('active');
+}
+
+function setRunButtons(disabled) {
+  document.getElementById('runBtn').disabled = disabled;
+  document.getElementById('demoBtn').disabled = disabled;
+}
+
+function resetRunButtons() {
+  setRunButtons(false);
+  document.getElementById('runBtn').textContent = 'Generate Lesson';
+  document.getElementById('demoBtn').textContent = 'Try Sample Lesson';
+}
+
+async function startPipeline(demo = false) {
+  let idea = document.getElementById('idea').value.trim();
+  if (demo && idea.length < 5) {
+    idea = 'Explain photosynthesis to middle-school students using a clear visual analogy';
+    document.getElementById('idea').value = idea;
+  }
   if (idea.length < 5) { showError('Please enter at least 5 characters.'); return; }
 
   hideError();
-  document.getElementById('runBtn').disabled = true;
-  document.getElementById('runBtn').innerHTML = '<span class="spinner"></span> Generating...';
+  projectFinished = false;
+  stopPolling();
+  closeWebSocket(true);
+  setRunButtons(true);
+  const activeButton = document.getElementById(demo ? 'demoBtn' : 'runBtn');
+  activeButton.innerHTML = '<span class="spinner"></span> Generating...';
   document.getElementById('pipeline').classList.add('active');
   document.getElementById('videoSection').style.display = 'none';
   document.getElementById('logBox').innerHTML = '';
@@ -149,7 +198,7 @@ async function startPipeline() {
     const resp = await fetch('/api/projects', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idea })
+      body: JSON.stringify({ idea, demo })
     });
     if (!resp.ok) throw new Error((await resp.json()).detail || 'Server error');
     const data = await resp.json();
@@ -159,8 +208,7 @@ async function startPipeline() {
   } catch (e) {
     showError(e.message);
     log('Error: ' + e.message, 'error');
-    document.getElementById('runBtn').disabled = false;
-    document.getElementById('runBtn').textContent = 'Generate Video';
+    resetRunButtons();
   }
 }
 
@@ -171,26 +219,32 @@ function connectWebSocket(projectId) {
     const msg = JSON.parse(event.data);
     handleProgress(msg);
   };
-  ws.onerror = () => { log('WebSocket error — falling back to polling', 'error'); startPolling(projectId); };
-  ws.onclose = () => { if (document.getElementById('runBtn').disabled && !document.getElementById('videoSection').style.display !== 'block') startPolling(projectId); };
+  ws.onerror = () => {
+    log('Live updates disconnected — switching to status polling', 'error');
+    ws.close();
+  };
+  ws.onclose = () => {
+    if (!projectFinished && currentProjectId === projectId) startPolling(projectId);
+  };
 }
 
 function startPolling(projectId) {
-  const interval = setInterval(async () => {
+  if (pollingTimer !== null || projectFinished) return;
+  pollingTimer = setInterval(async () => {
     try {
       const resp = await fetch(`/api/projects/${projectId}`);
+      if (!resp.ok) throw new Error(`Status request failed (${resp.status})`);
       const data = await resp.json();
       if (data.status === 'completed') {
-        clearInterval(interval);
+        projectFinished = true;
+        stopPolling();
         handleProgress({ stage: 'done', plan: data.plan, shots: data.shots, video_path: data.video_path });
-      } else if (data.status === 'failed') {
-        clearInterval(interval);
-        showError(data.error || 'Pipeline failed');
-        log('Pipeline failed: ' + (data.error || 'unknown'), 'error');
-        document.getElementById('runBtn').disabled = false;
-        document.getElementById('runBtn').textContent = 'Generate Video';
+      } else if (data.status === 'failed' || data.status === 'interrupted') {
+        handleProgress({ stage: 'error', message: data.error || 'Pipeline did not complete' });
       }
-    } catch {}
+    } catch (error) {
+      log(error.message, 'error');
+    }
   }, 2000);
 }
 
@@ -205,36 +259,47 @@ function handleProgress(msg) {
     if (msg.data) { document.getElementById('scriptContent').textContent = JSON.stringify(msg.data, null, 2); document.getElementById('panel-script').classList.add('active'); }
   } else if (msg.stage === 'storyboard') {
     setStage('storyboard', 'done', 'Done');
-    log('Storyboard: %d shots planned', 'info');
+    log(`Storyboard: ${msg.count ?? (msg.data ? msg.data.length : 0)} shots planned`, 'info');
     if (msg.data) { document.getElementById('storyboardContent').textContent = JSON.stringify(msg.data, null, 2); document.getElementById('panel-storyboard').classList.add('active'); }
   } else if (msg.stage === 'media') {
     setStage('media', 'active', 'Generating...');
     log('Media: generating assets...', 'info');
+  } else if (msg.stage === 'media_progress') {
+    setStage('media', 'active', `Shot ${msg.shot_id} ready`);
+    addGalleryImage(msg.image_url);
+    log(`Media: shot ${msg.shot_id} ready`, 'success');
   } else if (msg.stage === 'assembly') {
     setStage('media', 'done', 'Done');
     setStage('assembly', 'active', 'Assembling...');
     log('Assembly: stitching video...', 'info');
-    if (msg.images) { const g = document.getElementById('gallery'); msg.images.forEach(url => { const img = document.createElement('img'); img.src = url; g.appendChild(img); }); document.getElementById('panel-gallery').classList.add('active'); }
+    if (msg.images) msg.images.forEach(addGalleryImage);
   } else if (msg.stage === 'done') {
+    projectFinished = true;
+    stopPolling();
+    closeWebSocket();
     setStage('assembly', 'done', 'Complete');
     log('Pipeline complete!', 'success');
     if (msg.plan) { document.getElementById('planContent').textContent = JSON.stringify(msg.plan, null, 2); document.getElementById('panel-plan').classList.add('active'); }
     if (msg.shots) {
       document.getElementById('storyboardContent').textContent = JSON.stringify(msg.shots, null, 2);
       document.getElementById('panel-storyboard').classList.add('active');
-      const g = document.getElementById('gallery');
-      msg.shots.forEach(s => { if (s.image_path) { const img = document.createElement('img'); img.src = `/api/projects/${currentProjectId}/assets/${s.image_path.split('/').pop()}`; g.appendChild(img); } });
-      document.getElementById('panel-gallery').classList.add('active');
+      msg.shots.forEach(s => {
+        if (s.image_url) addGalleryImage(s.image_url);
+        else if (s.image_path) addGalleryImage(`/api/projects/${currentProjectId}/assets/${s.image_path.split('/').pop()}`);
+      });
     }
     if (msg.video_path) { const v = document.getElementById('finalVideo'); v.src = `/api/projects/${currentProjectId}/video`; document.getElementById('videoSection').style.display = 'block'; v.load(); }
-    document.getElementById('runBtn').disabled = false;
-    document.getElementById('runBtn').textContent = 'Generate Another';
+    resetRunButtons();
+    document.getElementById('runBtn').textContent = 'Generate Another Lesson';
   } else if (msg.stage === 'error') {
+    projectFinished = true;
+    stopPolling();
+    closeWebSocket();
     showError(msg.message || 'Pipeline failed');
     log('Error: ' + (msg.message || 'unknown'), 'error');
-    setStage(msg.agent || 'director', 'error', 'Failed');
-    document.getElementById('runBtn').disabled = false;
-    document.getElementById('runBtn').textContent = 'Generate Video';
+    const failedStage = msg.agent || document.querySelector('.stage.active')?.id.replace('stage-', '') || 'director';
+    setStage(failedStage, 'error', 'Failed');
+    resetRunButtons();
   } else if (msg.stage === 'log') {
     log(msg.message, msg.level || '');
   } else if (msg.stage === 'director') { setStage('director', 'active', 'Working...'); log('Director: planning...', 'info'); }
